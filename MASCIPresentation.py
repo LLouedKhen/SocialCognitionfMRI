@@ -9,6 +9,7 @@ participant on the content of the previous clip. Possible answers are presented
 in a multiple choice format. A metacognitive scale is then presented to participans.
 This script relies on the psychopy library and is customised for presentation in
 an MRI scanner. 
+Updated for PsychoPy reasons (function deprecations, etc)
 @author: Leyla Loued-Khenissi (sysadmin), CHUV, Lausanne, 2024, lkhenissi@gmail.com
 
 """
@@ -22,6 +23,7 @@ import pandas as pd
 from psychopy import visual, core, constants, event
 from psychopy.hardware import keyboard
 from psychopy.visual import form as Form
+from psychopy.visual import MovieStim3
 
 #Experiment Datapath
 outPath = '/Users/sysadmin/Documents/NeuroScape/Output/Behavioral'
@@ -51,7 +53,7 @@ for p in pic:
 # keyboard to listen for keys
 kb = keyboard.Keyboard()
 #MASC questions
-Questions = pd.read_csv(os.path.join(stimPath,'MASC_Questions_newCTRL2.csv'))
+Questions = pd.read_csv(os.path.join(stimPath,'MASC_Questions.csv'))
 jitter = random.uniform(1,2)
 
 Qs = []
@@ -78,7 +80,7 @@ respPos = [(-0.75, 0),
                 (0.15, 0),
                 (0.60,0)]
 #MASC Answers
-qOptions = pd.read_csv(os.path.join(stimPath, 'MASC_Answers_newCTRL2.csv'))
+qOptions = pd.read_csv(os.path.join(stimPath, 'MASC_Answers.csv'))
 logFile = os.path.join(subjPath, "output" + subjNum + ".txt")
 with open(logFile, "a") as f:
     # window to present the video
@@ -131,10 +133,22 @@ with open(logFile, "a") as f:
     fontFiles=(), wrapWidth=None, flipHoriz=False, flipVert=False, languageStyle='LTR', name=None, autoLog=None)
     
     confQuestion= visual.TextStim(win, text = 'A quel point êtes vous sur de votre réponse?', 
-    font='', pos=(0, 0), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
+    font='', pos=(0, 0.3), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
     ori=0.0, height=None, antialias=True, bold=False, italic=False, alignHoriz='center', alignVert='center',
     fontFiles=(), wrapWidth=None, flipHoriz=False, flipVert=False, languageStyle='LTR', name=None, autoLog=None) 
        
+    confScale = visual.Slider(win,
+        ticks=list(range(1, 11)),             # `low=1, high=10` -> ticks from 1 to 10
+        labels=None,                           # No specific labels
+        startValue=random.randint(1, 10),      # `markerStart`
+        granularity=1,                         # Ensures only integer values (discrete steps)
+        color='black',                     # `textColor`
+        pos= (0, -0.3), markerColor='Black')
+    # Set up custom key responses for moving the marker and accepting the response
+    cleftKeys = '1'
+    crightKeys = '4'
+    cacceptKeys = ['2', '3']
+    
     clock = core.Clock()
     instr1.draw()
     win.flip()
@@ -228,17 +242,14 @@ with open(logFile, "a") as f:
         ansShowList = [visual.TextStim(win, text=answers.Answers.iloc[i], pos=respPos[i],  height = 0.05, wrapWidth = 0.3) for i in range(4)]
         imRList = [visual.Rect(win=win, size = [0.4, 0.4], lineColor=[-1, -1, -1], pos=respPos[i]) for i in range(4)]
         imSList = [visual.Rect(win=win, size = [0.4, 0.4], lineColor=[255, 0, 0], pos=respPos[i], name=f'imS{i + 1}') for i in range(4)]
-    
-        confScale = visual.RatingScale(win, low=1, high=10, markerStart= random.randint(1,10), choices =None,scale= None, acceptPreText =None, 
-        showValue = None, showAccept = None, labels=None, 
-        leftKeys='1', rightKeys = '4', acceptKeys=['2','3'], textColor = 'black')
+
         confScale.reset()
         # create a new movie stimulus instance
         thisMov = clips[m]
         # thisMov = '/Users/sysadmin/Documents/NeuroScape/MASC_FR/20.wmv'
         mov = visual.MovieStim(
             win,
-            thisMov,    # path to video file
+            thisMov,   # path to video file
             size=(640, 480),
             flipVert=False,
             flipHoriz=False,
@@ -260,32 +271,37 @@ with open(logFile, "a") as f:
             # draw the movie
             mov.draw()
             # draw the instruction text
-            if m == 0:
-                instr.draw()
+            # if m == 0:
+            instr.draw()
             # flip buffers so they appear on the window
             win.flip()
         
             # process keyboard input
-            if kb.getKeys('q'):   # quit
-                break
-            elif kb.getKeys(['1', '2', '3', '4']):  # play/start
+            if event.waitKeys():
+            # if kb.getKeys('q'):   # quit
+            #     break
+            # elif kb.getKeys(['1', '2', '3', '4']):  # play/start
                 mov.play()
                 thisT0 = clock.getTime()
                 t0.append(thisT0)
                 print('Movie started at ' + str(thisT0), file = f)
                 print('Movie started at ' + str(thisT0))
+                while (clock.getTime() - thisT0) < mov.getDuration():
+                    mov.draw()
+                    win.flip()
+                    # print('Movie status' + str(mov.status))
             # elif kb.getKeys('p'):  # pause
             #     mov.pause()
             # elif kb.getKeys('s'):  # stop the movie
             #     mov.stop()
         
         # stop the movie, this frees resources too
-        mov.unload()  # unloads when `mov.status == constants.FINISHED`
-        thisT1 = clock.getTime()
-        t1.append(thisT1)
-        print('Movie ended at ' + str(thisT1), file = f)
-        print('Movie ended at ' + str(thisT1))
-        quest = visual.TextStim(win, text= thisQ, font='', pos=(0.0, 0.5), depth=0, rgb=None, 
+                mov.unload()  # unloads when `mov.status == constants.FINISHED`
+                thisT1 = clock.getTime()
+                t1.append(thisT1)
+                print('Movie ended at ' + str(thisT1), file = f)
+                print('Movie ended at ' + str(thisT1))
+                quest = visual.TextStim(win, text= thisQ, font='', pos=(0.0, 0.5), depth=0, rgb=None, 
                     color=(1.0, 1.0, 1.0), colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
                     ori=0.0, height=None, antialias=True, bold=False, italic=False, alignHoriz=None, 
                     alignVert=None, alignText='center', anchorHoriz='center', anchorVert='center', 
@@ -293,132 +309,145 @@ with open(logFile, "a") as f:
                     draggable=False, name=None, autoLog=None, autoDraw=False)
 
     
-        for imShow, imR, sIm, pos in zip(ansShowList, imRList, sImList, respPos):
-                imShow.pos = pos
-                imR.pos = pos
-                imShow.draw()
-                imR.draw()
+                for imShow, imR, sIm, pos in zip(ansShowList, imRList, sImList, respPos):
+                    imShow.pos = pos
+                    imR.pos = pos
+                    imShow.draw()
+                    imR.draw()
             
-        # Draw the red rectangle (cursor) at the initial position
-        cursor.setPos((cursor_x, cursor_y))
-        cursor.draw()
-        quest.draw()
-        win.flip()
-        thisT2 = clock.getTime()
-        t2.append(thisT2)
-    
-         
-        keyState = {'4': False, '1': False, '2': False, '3': False}
-         
-        thisResp =[]
-        while '2' not in thisResp and '3' not in thisResp:
-          move = event.waitKeys(keyList = ['4', '1', '2', '3'], clearEvents=True, timeStamped=True)  
-                
-        # Set up initial variables for continuous key presses
-          if move:
-            # press = move[len(move) - 1].name
-            press = move[0][0]
-            thisResp = press
-            thisRT = move[0][1]
-        
-            #Check for key presses and update keyState
-            for key in keyState:
-              # keyState[key] = any(press.name == key for press in move)
-              keyState[key] = any(press == key for press in move)
-            if '4' in press:
-                  if cursor_x == -0.75 and cursor_y == 0:
-                    cursor_x = -0.3
-                    cursor_y = 0
-                  elif cursor_x == -0.3 and cursor_y == 0:
-                      cursor_x = 0.15
-                      cursor_y = 0  
-                  elif cursor_x == 0.15 and cursor_y == 0:
-                      cursor_x = 0.6
-                      cursor_y = 0
-                  elif cursor_x == 0.6 and cursor_y == 0:
-                      cursor_x = 0.6
-                      cursor_y = 0 
-                  event.clearEvents()
-                   
-                 
-            elif '1' in press:
-                  if cursor_x == 0.6 and cursor_y == 0:
-                    cursor_x = 0.15
-                    cursor_y = 0
-                  elif cursor_x == 0.15 and cursor_y == 0:
-                    cursor_x = -0.3
-                    cursor_y = 0
-                  elif cursor_x == -0.3 and cursor_y == 0:
-                    cursor_x = -0.75
-                    cursor_y = 0
-                  elif cursor_x == -0.75 and cursor_y == 0:
-                    cursor_x = -0.75
-                    cursor_y = 0
-                  event.clearEvents()
-                  
-                       
-            elif '2' in thisResp or '3' in thisResp:
-                    cursor_x = cursor_x
-                    cursor_y = cursor_y
-                    thisTrialResp= True
-                    thisT3 = clock.getTime()
-                    t3.append(thisT3)
-                    imSelectedPos = cursor_x, cursor_y
-                    imSelectedInd = respPos.index((imSelectedPos))
-                    imSelectedIm = answers.Answers.iloc[imSelectedInd]
-                    Response.append(imSelectedIm)
-                    if answers.Score.iloc[imSelectedInd] == 0:
-                        Correct.append(1)
-                        print('Subject chose correctly at ' + str(thisT3) , file = f)
-                        print('Subject chose correctly at ' + str(thisT3))
-                        
-                    else:
-                        Correct.append(0)
-                        print('Subject chose ' + str(answers.Score.iloc[imSelectedInd]) +' incorrectly at ' + str(thisT3), file = f)
-                        print('Subject chose ' + str(answers.Score.iloc[imSelectedInd]) +' incorrectly at ' + str(thisT3))
-                    Score.append(answers.Score.iloc[imSelectedInd])
-                    Category.append(answers.Category.iloc[imSelectedInd])
-                    Target.append(answers.Target.iloc[imSelectedInd])
-                    TOMCat.append(answers.QuestionType.iloc[imSelectedInd])
-                    event.clearEvents()
-            
-            
-            # Draw all elements
-            for imShow, imR, sIm, pos in zip(ansShowList, imRList, sImList, respPos):
-              imShow.pos = pos
-              imR.pos = pos
-              imShow.draw()
-              imR.draw()
-              quest.draw()
-               
-            # Draw the red rectangle (cursor) at the updated position
+            # Draw the red rectangle (cursor) at the initial position
             cursor.setPos((cursor_x, cursor_y))
             cursor.draw()
-            win.flip()  
-            if '2' in thisResp or '3' in thisResp:
-            # Display FixationText and collect confScale input
-                FixationText.draw()
-                win.flip()
-                core.wait(2)
-                thisT4 = clock.getTime()
-                t4.append(thisT4)  
-                while confScale.noResponse:
-                    confQuestion.draw()
-                    confScale.draw()
-                    win.flip()    
-                thisT5 = clock.getTime()
-                t5.append(thisT5)    
-                rating = confScale.getRating()
-                print('Subject reprorted a confidence of ' + str(rating) + ' at ' + str(thisT5), file = f)
-                print('Subject reprorted a confidence of ' + str(rating) + ' at ' + str(thisT5))
-                decision_time = confScale.getRT()
-                confidence.append(rating)
-                confidenceRT.append(decision_time)
-                FixationText.draw()
-                win.flip()
-                # core.wait(2)
-                core.wait(3.5 + jitter)
-                event.clearEvents()
+            quest.draw()
+            win.flip()
+            thisT2 = clock.getTime()
+            t2.append(thisT2)
+        
+             
+            keyState = {'4': False, '1': False, '2': False, '3': False}
+             
+            thisResp =[]
+            while '2' not in thisResp and '3' not in thisResp:
+              move = event.waitKeys(keyList = ['4', '1', '2', '3'], clearEvents=True, timeStamped=True)  
+                    
+            # Set up initial variables for continuous key presses
+              if move:
+                # press = move[len(move) - 1].name
+                press = move[0][0]
+                thisResp = press
+                thisRT = move[0][1]
+            
+                #Check for key presses and update keyState
+                for key in keyState:
+                  # keyState[key] = any(press.name == key for press in move)
+                  keyState[key] = any(press == key for press in move)
+                if '4' in press:
+                      if cursor_x == -0.75 and cursor_y == 0:
+                        cursor_x = -0.3
+                        cursor_y = 0
+                      elif cursor_x == -0.3 and cursor_y == 0:
+                          cursor_x = 0.15
+                          cursor_y = 0  
+                      elif cursor_x == 0.15 and cursor_y == 0:
+                          cursor_x = 0.6
+                          cursor_y = 0
+                      elif cursor_x == 0.6 and cursor_y == 0:
+                          cursor_x = 0.6
+                          cursor_y = 0 
+                      event.clearEvents()
+                       
+                     
+                elif '1' in press:
+                      if cursor_x == 0.6 and cursor_y == 0:
+                        cursor_x = 0.15
+                        cursor_y = 0
+                      elif cursor_x == 0.15 and cursor_y == 0:
+                        cursor_x = -0.3
+                        cursor_y = 0
+                      elif cursor_x == -0.3 and cursor_y == 0:
+                        cursor_x = -0.75
+                        cursor_y = 0
+                      elif cursor_x == -0.75 and cursor_y == 0:
+                        cursor_x = -0.75
+                        cursor_y = 0
+                      event.clearEvents()
+                      
+                           
+                elif '2' in thisResp or '3' in thisResp:
+                        cursor_x = cursor_x
+                        cursor_y = cursor_y
+                        thisTrialResp= True
+                        thisT3 = clock.getTime()
+                        t3.append(thisT3)
+                        imSelectedPos = cursor_x, cursor_y
+                        imSelectedInd = respPos.index((imSelectedPos))
+                        imSelectedIm = answers.Answers.iloc[imSelectedInd]
+                        Response.append(imSelectedIm)
+                        if answers.Score.iloc[imSelectedInd] == 0:
+                            Correct.append(1)
+                            print('Subject chose correctly at ' + str(thisT3) , file = f)
+                            print('Subject chose correctly at ' + str(thisT3))
+                            
+                        else:
+                            Correct.append(0)
+                            print('Subject chose ' + str(answers.Score.iloc[imSelectedInd]) +' incorrectly at ' + str(thisT3), file = f)
+                            print('Subject chose ' + str(answers.Score.iloc[imSelectedInd]) +' incorrectly at ' + str(thisT3))
+                        Score.append(answers.Score.iloc[imSelectedInd])
+                        Category.append(answers.Category.iloc[imSelectedInd])
+                        Target.append(answers.Target.iloc[imSelectedInd])
+                        TOMCat.append(answers.QuestionType.iloc[imSelectedInd])
+                        event.clearEvents()
+                
+                
+                # Draw all elements
+                for imShow, imR, sIm, pos in zip(ansShowList, imRList, sImList, respPos):
+                  imShow.pos = pos
+                  imR.pos = pos
+                  imShow.draw()
+                  imR.draw()
+                  quest.draw()
+                   
+                # Draw the red rectangle (cursor) at the updated position
+                cursor.setPos((cursor_x, cursor_y))
+                cursor.draw()
+                win.flip()  
+                if '2' in thisResp or '3' in thisResp:
+                # Display FixationText and collect confScale input
+                    FixationText.draw()
+                    win.flip()
+                    core.wait(2)
+                    thisT4 = clock.getTime()
+                    t4.append(thisT4)   
+                        
+                    while confScale.getRating() is None:          # Keep looping until a value is selected
+                        confScale.draw()
+                        confQuestion.draw()
+                        win.flip()
+                        c1 = clock.getTime()
+                        ckeys = event.getKeys()                     
+                        if cleftKeys in ckeys:                  # Move left
+                            confScale.markerPos = max(confScale.markerPos - 1, 1)
+                        elif crightKeys in ckeys:               # Move right
+                            confScale.markerPos = min(confScale.markerPos + 1, 10)
+                        elif any(key in ckeys for key in cacceptKeys):  # Accept response
+                            rating = confScale.getMarkerPos()  # Retrieve the rating when Enter is pressed
+                            c2 = clock.getTime()
+                            
+                            print(f"Rating accepted: {rating}")
+                            break       
+                    thisT5 = clock.getTime()
+                    t5.append(thisT5)    
+                    rating = confScale.getMarkerPos()
+                    decision_time = thisT5-c1
+                    print('Subject reported a confidence of ' + str(rating) + ' at ' + str(thisT5), file = f)
+                    print('Subject reported a confidence of ' + str(rating) + ' at ' + str(thisT5))
+                    confidence.append(rating)
+                    confidenceRT.append(decision_time)
+                    FixationText.draw()
+                    win.flip()
+                    # core.wait(2)
+                    core.wait(3.5 + jitter)
+                    event.clearEvents()
         allResults = pd.concat([pd.Series(Response), pd.Series(Correct), pd.Series(Score), pd.Series(Target), pd.Series(TOMCat), pd.Series(confidence), pd.Series(confidenceRT), pd.Series(t0), pd.Series(t1), pd.Series(t2), pd.Series(t3), pd.Series(t4), pd.Series(t5)], axis=1)
     
         allResults.columns =['Response', 'Correct', 'Score', 'Target', 'TOMCat', 'confidence', 'confidenceRT', 't0', 't1', 't2', 't3', 't4', 't5']
