@@ -9,7 +9,7 @@ participant on the content of the previous clip. Possible answers are presented
 in a multiple choice format. A metacognitive scale is then presented to participans.
 This script relies on the psychopy library and is customised for presentation in
 an MRI scanner. 
-Updated for PsychoPy reasons (function deprecations, etc)
+Amended for rating scale: PsychoPy ratingScale deprecated - use slider instead
 @author: Leyla Loued-Khenissi (sysadmin), CHUV, Lausanne, 2024, lkhenissi@gmail.com
 
 """
@@ -21,14 +21,16 @@ import random
 import pandas as pd
 
 from psychopy import visual, core, constants, event
-from psychopy.hardware import keyboard
 from psychopy.visual import form as Form
 from psychopy.visual import MovieStim3
+# PsychoPy's keyboard (for response collection)
+from psychopy.hardware import keyboard as psychopy_kb
+
+# # System-wide keyboard package (for blocking keys, works only on PC)
+# import keyboard as system_kb
 
 #Experiment Datapath
 outPath = '/Users/sysadmin/Documents/NeuroScape/Output/Behavioral'
-
-
 
 subjNum = input("Enter main participant identifier: ") 
 subjPath = os.path.join(outPath, 'MASCI_' + subjNum)
@@ -51,9 +53,9 @@ for p in pic:
     pics.append(os.path.join(stimPath, p))
     
 # keyboard to listen for keys
-kb = keyboard.Keyboard()
+kb =  psychopy_kb.Keyboard()
 #MASC questions
-Questions = pd.read_csv(os.path.join(stimPath,'MASC_Questions.csv'))
+Questions = pd.read_csv(os.path.join(stimPath,'MASC_Questions_ALT.csv'))
 jitter = random.uniform(1,2)
 
 Qs = []
@@ -67,12 +69,15 @@ RespRT = []
 Score = []
 confidence = []
 confidenceRT = []
+tstCl = []
 t0 = []
 t1 = []
 t2 = []
 t3 = []
 t4 = []
 t5 = []
+triggers = []
+trigTrials = []
 
 #response positions; add interval of 0.05 over the box width
 respPos = [(-0.75, 0),
@@ -80,11 +85,12 @@ respPos = [(-0.75, 0),
                 (0.15, 0),
                 (0.60,0)]
 #MASC Answers
-qOptions = pd.read_csv(os.path.join(stimPath, 'MASC_Answers.csv'))
+qOptions = pd.read_csv(os.path.join(stimPath, 'MASC_Answers_ALT.csv'))
 logFile = os.path.join(subjPath, "output" + subjNum + ".txt")
 with open(logFile, "a") as f:
     # window to present the video
-    win = visual.Window((1000, 800), fullscr=False, allowStencil=True)
+    #win = visual.Window((1000, 800), fullscr=False, allowStencil=True)
+    win = visual.Window([1512,982], [0, 0], monitor="testMonitor", units="deg")
     
     instr1 = visual.TextStim(win, text = "Vous allez visionner un film d‘une durée de 15 minutes. Regardez attentivement ce film et essayez de comprendre ce que chaque personnage pense ou ressent. \n\n Appuyez sur une touche pour continuer.", 
     font='', pos=(0, 0), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
@@ -101,17 +107,17 @@ with open(logFile, "a") as f:
     pic3 = visual.ImageStim(win, image=pics[2])
     pic4 = visual.ImageStim(win, image=pics[3])
     
-    instr3 = visual.TextStim(win, text = "Le film met en scène ces quatre personnagesqui se rencontrent un samedi soir. \n\n Appuyez sur une touche pour continuer.", 
+    instr3 = visual.TextStim(win, text = "Le film met en scène ces quatre personnages qui se rencontrent un samedi soir. \n\n Appuyez sur une touche pour continuer.", 
     font='', pos=(0, 0), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
     ori=0.0, height=None, antialias=True, bold=False, italic=False, alignHoriz='center', alignVert='center',
     fontFiles=(), wrapWidth=None, flipHoriz=False, flipVert=False, languageStyle='LTR', name=None, autoLog=None)   
     
-    instr4 = visual.TextStim(win, text = "La vidéo va être arrêtée à différents moments. Chaque arrêt sera accompagné d’une question. Vous devrez sélectionner une seule réponse parmi les quatre options présentées.  Il n’y a pas de bonne ou mauvaise réponse. Si vous n’êtes pas certain de la réponse, choisissez l’option qui vous apparaît la plus vraisemblable. \n\n Appuyez sur une touche pour continuer.", 
+    instr4 = visual.TextStim(win, text = "Le film sera arrêté à différents moments. Chaque arrêt sera accompagné d’une question. Vous devrez sélectionner une seule réponse parmi les quatre options présentées. Si vous n’êtes pas certain de la réponse, choisissez l’option qui vous paraît la plus vraisemblable. \n\n Appuyez sur une touche pour continuer.", 
     font='', pos=(0, 0), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
     ori=0.0, height=None, antialias=True, bold=False, italic=False, alignHoriz='center', alignVert='center',
     fontFiles=(), wrapWidth=None, flipHoriz=False, flipVert=False, languageStyle='LTR', name=None, autoLog=None)   
     
-    instr5 = visual.TextStim(win, text = "Lorsque vous répondrez, essayez d’imaginer ce que le personnage en question pense ou ressent au moment où la vidéo a été arrêtée. \n\n Appuyez sur une touche pour continuer." , 
+    instr5 = visual.TextStim(win, text = "Pour selectionner votre réponse, naviguez à gauche/droite avec les touches 1 et 4. Pour valider votre réponse, appuyez sur la touche 2 ou 3. \n\n Appuyez sur une touche pour continuer." , 
     font='', pos=(0, 0), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
     ori=0.0, height=None, antialias=True, bold=False, italic=False, alignHoriz='center', alignVert='center',
     fontFiles=(), wrapWidth=None, flipHoriz=False, flipVert=False, languageStyle='LTR', name=None, autoLog=None)   
@@ -196,19 +202,38 @@ with open(logFile, "a") as f:
     
     scannerWait.draw()
     win.flip()
-    trigger = event.waitKeys(keyList = ['5'], clearEvents=True, timeStamped=True) 
+    trigger = event.waitKeys(keyList = ['s'], clearEvents=True, timeStamped=True) 
     
-    #block key 5 to keep console clear
-    #keyboard.block_key("5")
+    #block key 's' to keep console clear
+    #system_kb.block_key("s")
     
     trigTime = trigger[0][1]
     startExp1 = clock.getTime()
-    print('Trigger at ' + str(startExp1), file=f)
-    print('Trigger at ' + str(startExp1)) 
+    print('Trigger 1 at ' + str(trigTime), file=f)
+    print('Trigger 1 at ' + str(trigTime)) 
 
     for m in range(len(clips)):
         print('Trial number ' + str(m), file=f)
         print('Trial number ' + str(m))
+        t = (clock.getTime() - trigTime) / 60
+
+        # Check if t is within ±0.5 minutes of a sync point
+        if any(abs(t - x) < 0.5 for x in [10, 20, 30, 40]):
+            print(f'Sync trigger at {t:.2f} minutes')  # Debugging
+            idT = round(t)/10
+            #unblock trigger key
+            #system_kb.unblock_key('s')        
+            scannerWait.draw()
+            win.flip()
+            strigger = event.waitKeys(keyList = ['s'], clearEvents=True, timeStamped=True)  
+            thisTrig = strigger[0][1]
+            print('Trigger ' + str(idT) + ' at ' + str(thisTrig), file=f)
+            print('Trigger ' + str(idT) + ' at ' + str(thisTrig))
+            #block key 's' to keep console clear
+            #system_kb.block_key("s")            
+            triggers.append(thisTrig)
+            trigTrials.append(m)
+            
     #Set up question
         thisQ = Questions.Question.iloc[m]
     #Set up related answers
@@ -281,8 +306,8 @@ with open(logFile, "a") as f:
             # if kb.getKeys('q'):   # quit
             #     break
             # elif kb.getKeys(['1', '2', '3', '4']):  # play/start
-                mov.play()
                 thisT0 = clock.getTime()
+                mov.play()        
                 t0.append(thisT0)
                 print('Movie started at ' + str(thisT0), file = f)
                 print('Movie started at ' + str(thisT0))
@@ -415,7 +440,7 @@ with open(logFile, "a") as f:
                 # Display FixationText and collect confScale input
                     FixationText.draw()
                     win.flip()
-                    core.wait(2)
+                    core.wait(5)
                     thisT4 = clock.getTime()
                     t4.append(thisT4)   
                         
@@ -436,17 +461,17 @@ with open(logFile, "a") as f:
                             print(f"Rating accepted: {rating}")
                             break       
                     thisT5 = clock.getTime()
-                    t5.append(thisT5)    
+                    t5.append(c2)    
                     rating = confScale.getMarkerPos()
-                    decision_time = thisT5-c1
-                    print('Subject reported a confidence of ' + str(rating) + ' at ' + str(thisT5), file = f)
-                    print('Subject reported a confidence of ' + str(rating) + ' at ' + str(thisT5))
+                    decision_time = c2-c1
+                    print('Subject reported a confidence of ' + str(rating) + ' at ' + str(c2), file = f)
+                    print('Subject reported a confidence of ' + str(rating) + ' at ' + str(c2))
                     confidence.append(rating)
                     confidenceRT.append(decision_time)
                     FixationText.draw()
                     win.flip()
                     # core.wait(2)
-                    core.wait(3.5 + jitter)
+                    core.wait(4.5 + jitter)
                     event.clearEvents()
         allResults = pd.concat([pd.Series(Response), pd.Series(Correct), pd.Series(Score), pd.Series(Target), pd.Series(TOMCat), pd.Series(confidence), pd.Series(confidenceRT), pd.Series(t0), pd.Series(t1), pd.Series(t2), pd.Series(t3), pd.Series(t4), pd.Series(t5)], axis=1)
     
@@ -457,7 +482,13 @@ with open(logFile, "a") as f:
     subjData.endExp = endExp
             
 
-    
+subjData.loc[6] = startExp1
+subjData.loc[7] = endExp    
+subjData.loc[8] = trigTime
+subjData.to_csv('MASCI_'+subjNum +'_IntakeData.csv')
+syncTriggers = pd.DataFrame(triggers)
+syncTriggers.to_csv('MASCI_'+subjNum +'_SyncTriggers.csv')
+
 thankYou = visual.TextStim(win, text = "Vous avez terminé l'experience. Merci de votre participation.",
     font='', pos=(0, 0), depth=0, rgb=None, color= 'black', colorSpace='rgb', opacity=1.0, contrast=1.0, units='', 
     ori=0.0, height=None, antialias=True, bold=False, italic=False, alignHoriz='center', alignVert='center',
@@ -469,4 +500,6 @@ win.flip()
 core.wait(2)
 win.close()
 core.quit()
+#unblock trigger key
+#system_kb.unblock_key('s')
 
