@@ -76,7 +76,8 @@ else:
     print ("This subject already exists! ")
     overW= input("Overwrite (Y/N)?") 
     if re.match("^[Y]*$", overW):
-        os.rmdir(subjectNum)
+        import shutil
+        shutil.rmtree(os.path.join(outputPath, subjectNum))
         os.makedirs(subjectNum)
     
 subjPath = os.path.join(outputPath, subjectNum)
